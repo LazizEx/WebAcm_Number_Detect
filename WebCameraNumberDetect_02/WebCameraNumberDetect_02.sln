@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebCameraNumberDetect_02", "WebCameraNumberDetect_02\WebCameraNumberDetect_02.csproj", "{CE502B0F-5C7C-417C-86E4-FBD7CAE3DB8C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dshow", "dshow\dshow.csproj", "{37B08AFD-F4BC-4E13-9119-537BA6A12CCB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE502B0F-5C7C-417C-86E4-FBD7CAE3DB8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE502B0F-5C7C-417C-86E4-FBD7CAE3DB8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE502B0F-5C7C-417C-86E4-FBD7CAE3DB8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE502B0F-5C7C-417C-86E4-FBD7CAE3DB8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37B08AFD-F4BC-4E13-9119-537BA6A12CCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37B08AFD-F4BC-4E13-9119-537BA6A12CCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37B08AFD-F4BC-4E13-9119-537BA6A12CCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37B08AFD-F4BC-4E13-9119-537BA6A12CCB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
