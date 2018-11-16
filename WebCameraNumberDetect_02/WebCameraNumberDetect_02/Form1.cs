@@ -49,7 +49,10 @@ namespace WebCameraNumberDetect_02
 
                 if (filters.Count == 0)
                     throw new ApplicationException();
-                device = filters[0].MonikerString;
+                foreach (Filter item in filters)
+                    comboBox2.Items.Add(item.Name);
+                comboBox2.SelectedIndex = 0;
+                
 
             }
             catch (ApplicationException)
@@ -388,6 +391,28 @@ namespace WebCameraNumberDetect_02
             TesseractEngineLoad(comboBox1.Text);
         }
 
+        private void buttonCameraSetting_Click(object sender, EventArgs e)
+        {
+            if (FinalVideo != null)
+                FinalVideo.DisplayPropertyPage(this.Handle);
+        }
+
+        private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            foreach (Filter item in filters)
+            {
+                if (item.Name.Contains(comboBox2.Text))
+                {
+                    device = item.MonikerString;
+                    if (FinalVideo != null)
+                    {
+                        FinalVideo.Stop();
+                        FinalVideo.Source = device;// = captureDevice.VideoDevice;
+                        FinalVideo.Start();
+                    }
+                }
+            }
+        }
     }
     public class ExcelValues
     {
