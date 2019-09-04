@@ -4,9 +4,10 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
+using AForge.Imaging.Filters;
 using AForge.Video.DirectShow;
-using dshow;
 using Tesseract;
 
 namespace WebCameraNumberDetect_02
@@ -14,11 +15,11 @@ namespace WebCameraNumberDetect_02
     public partial class Form1 : Form
     {
         string device;
-        FilterCollection filters;
+        FilterInfoCollection filters;
         private VideoCaptureDevice FinalVideo = null;
         private Bitmap video;
-        private Bitmap videoWithRect;
-        
+        private Bitmap videoWithRectEx;
+
         //private AForge.Video.FFMPEG.VideoFileWriter FileWriter = new AForge.Video.FFMPEG.VideoFileWriter();
         int P = 0;
         UserRect rect;
@@ -28,10 +29,15 @@ namespace WebCameraNumberDetect_02
 
         public Form1()
         {
+            //System.AppDomain.CurrentDomain.UnhandledException += (sender, e)=> {
+            //    FinalVideo.SignalToStop();
+            //    MessageBox.Show(e.ExceptionObject.ToString());
+
+            //};
             InitializeComponent();
             rect = new UserRect(new Rectangle(10, 10, 100, 100));
             rect.SetPictureBox(this.pictureBox1);
-            
+
 
             string[] files = Directory.GetFiles(@"tessdata", "*.traineddata");
             for (int i = 0; i < files.Length; i++)
@@ -45,14 +51,17 @@ namespace WebCameraNumberDetect_02
 
             try
             {
-                filters = new FilterCollection(FilterCategory.VideoInputDevice);
+                // enumerate video devices
+                //var videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+
+                filters = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
                 if (filters.Count == 0)
                     throw new ApplicationException();
-                foreach (Filter item in filters)
+                foreach (FilterInfo item in filters)
                     comboBox2.Items.Add(item.Name);
                 comboBox2.SelectedIndex = 0;
-                
+
 
             }
             catch (ApplicationException)
@@ -71,10 +80,13 @@ namespace WebCameraNumberDetect_02
                     Tesseractengine.Dispose();
                     Tesseractengine = null;
                 }
-                Tesseractengine = new TesseractEngine(@"tessdata", font, EngineMode.TesseractOnly);
-                Tesseractengine.SetVariable("tessedit_char_whitelist", "0123456789:.");
+                string path = Path.Combine(Application.StartupPath, "tessdata");
+                Tesseractengine = new TesseractEngine(path, font, EngineMode.TesseractOnly);
+                Tesseractengine.SetVariable("tessedit_char_whitelist", ".0123456789:");
+
+                //Tesseractengine.SetVariable("classify_enable_learning", true);
             }
-            
+
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -93,52 +105,43 @@ namespace WebCameraNumberDetect_02
             chart1.Series["Series1"].Points.AddY(value);
         }
 
+        Grayscale gs = new Grayscale(0.1125, 0.7154, 0.0721);
+        Erosion erosion = new Erosion();
         void FinalVideo_NewFrame(object sender, AForge.Video.NewFrameEventArgs eventArgs)
         {
-            if (false)
+            video = (Bitmap)eventArgs.Frame.Clone();
+            Bitmap videoWithRect;// = (Bitmap)eventArgs.Frame.Clone(new Rectangle(0,0, eventArgs.Frame.Width, eventArgs.Frame.Height), PixelFormat.Format24bppRgb);
+            videoWithRect = new Bitmap(rect.rect.Width, rect.rect.Height);
+
+            using (Graphics g = Graphics.FromImage(videoWithRect))
+                g.DrawImage(video, new Rectangle(0, 0, rect.rect.Width, rect.rect.Height), rect.rect, GraphicsUnit.Pixel);
+
+            if (checkBox1.Checked)
+                videoWithRect = BlackAndWhite((Bitmap)videoWithRect);
+
+            if (checkBox2.Checked)
+                videoWithRect = Transform((Bitmap)videoWithRect.Clone());
+
+            videoWithRect = gs.Apply(videoWithRect);
+            erosion.ApplyInPlace(videoWithRect);
+
+            Bitmap temp = new Bitmap(videoWithRect.Width + 600, videoWithRect.Height + 400);
+
+            using (Graphics g = Graphics.FromImage(temp))
             {
-                video = (Bitmap)eventArgs.Frame.Clone();
-                pictureBox1.Image = (Bitmap)eventArgs.Frame.Clone();
-                //AVIwriter.Quality = 0;
-                //FileWriter.WriteVideoFrame(video);
-                //AVIwriter.AddFrame(video);
+                g.Clear(Color.White);
+                g.DrawImage(videoWithRect, new Rectangle(300, 200, videoWithRect.Width, videoWithRect.Height), new Rectangle(0, 0, videoWithRect.Width, videoWithRect.Height), GraphicsUnit.Pixel);
             }
-            else
+
+            pictureBox1.Image = video;
+            videoWithRectEx = (Bitmap)temp.Clone();
+            pictureBox2.Image = (Bitmap)videoWithRect.Clone();
+
+            videoWithRect.Dispose();
+            temp.Dispose();
+            if (GC.GetTotalMemory(false) > 1000000)
             {
-                video = (Bitmap)eventArgs.Frame.Clone();
-
-                if (!checkBox1.Checked && !checkBox2.Checked)
-                {
-                    videoWithRect = new Bitmap(rect.rect.Width, rect.rect.Height);
-                    using (Graphics g = Graphics.FromImage(videoWithRect))
-                        g.DrawImage((Bitmap)eventArgs.Frame.Clone(), new Rectangle(0, 0, videoWithRect.Width, videoWithRect.Height), rect.rect, GraphicsUnit.Pixel);
-                }
-                else if (checkBox1.Checked && checkBox2.Checked)
-                {
-                    var videoWithRect1 = new Bitmap(rect.rect.Width, rect.rect.Height);
-                    using (Graphics g = Graphics.FromImage(videoWithRect1))
-                        g.DrawImage((Bitmap)eventArgs.Frame.Clone(), new Rectangle(0, 0, videoWithRect1.Width, videoWithRect1.Height), rect.rect, GraphicsUnit.Pixel);
-
-                    videoWithRect1 = Transform((Bitmap)videoWithRect1.Clone());
-                    videoWithRect = BlackAndWhite((Bitmap)videoWithRect1.Clone());
-                }
-                else if(checkBox2.Checked)
-                {
-                    var videoWithRect1 = new Bitmap(rect.rect.Width, rect.rect.Height);
-                    using (Graphics g = Graphics.FromImage(videoWithRect1))
-                        g.DrawImage((Bitmap)eventArgs.Frame.Clone(), new Rectangle(0, 0, videoWithRect1.Width, videoWithRect1.Height), rect.rect, GraphicsUnit.Pixel);
-                    videoWithRect = Transform((Bitmap)videoWithRect1.Clone());
-                }
-                else if(checkBox1.Checked)
-                {
-                    var videoWithRect1 = new Bitmap(rect.rect.Width, rect.rect.Height);
-                    using (Graphics g = Graphics.FromImage(videoWithRect1))
-                        g.DrawImage((Bitmap)eventArgs.Frame.Clone(), new Rectangle(0, 0, videoWithRect1.Width, videoWithRect1.Height), rect.rect, GraphicsUnit.Pixel);
-                    videoWithRect = BlackAndWhite((Bitmap)videoWithRect1.Clone());
-                }
-
-                pictureBox1.Image = video;
-                pictureBox2.Image = videoWithRect;
+                GC.Collect();
             }
         }
 
@@ -146,12 +149,15 @@ namespace WebCameraNumberDetect_02
         {
             try
             {
+                //image.SetResolution(10, 10);
                 MemoryStream byteStream = new MemoryStream();
                 image.Save(byteStream, System.Drawing.Imaging.ImageFormat.Tiff);
 
                 label1.Invoke(new MethodInvoker(delegate () { label1.Text = ""; }));
-
                 using (var img = Pix.LoadTiffFromMemory(byteStream.ToArray()))
+                //C:\Users\Laziz\Source\Repos\WebAcm_Number_Detect\WebCameraNumberDetect_02\WebCameraNumberDetect_02\bin\Debug
+                //using (var img = Pix.LoadFromFile(@"C:\Users\Laziz\Desktop\111.png"))
+                //using (var img = Pix.LoadFromFile(@"C:\Users\Laziz\Source\Repos\WebAcm_Number_Detect\WebCameraNumberDetect_02\WebCameraNumberDetect_02\bin\Debug\test1.jpg"))
                 {
                     using (var page = Tesseractengine.Process(img, PageSegMode.SingleWord))
                     {
@@ -259,11 +265,12 @@ namespace WebCameraNumberDetect_02
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (videoWithRect == null)
+            if (videoWithRectEx == null)
                 return;
             if (Tesseractengine == null)
                 return;
-            OCR((Bitmap)videoWithRect);
+            OCR((Bitmap)videoWithRectEx);
+            //IronOCR((Bitmap)videoWithRect);
 
             if (buttonStart)
             {
@@ -399,7 +406,7 @@ namespace WebCameraNumberDetect_02
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
-            foreach (Filter item in filters)
+            foreach (FilterInfo item in filters)
             {
                 if (item.Name.Contains(comboBox2.Text))
                 {
